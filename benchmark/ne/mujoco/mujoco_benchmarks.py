@@ -369,7 +369,10 @@ class JAXEnvironmentWrapper:
         self.env_name = env_name
 
         try:
-            self.env: HasEnvProtocol = registry.load(env_name=env_name)
+            self.env: HasEnvProtocol = registry.load(
+                env_name=env_name,
+                config_overrides={"impl": "jax"},
+            )
         except Exception as e:
             raise RuntimeError(
                 f"无法加载环境 / Cannot load environment '{env_name}': {e}"
