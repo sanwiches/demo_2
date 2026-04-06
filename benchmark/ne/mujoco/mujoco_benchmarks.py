@@ -80,6 +80,7 @@ This is a neuroevolution benchmark implementation based on mujoco_playground.
 # 第一阶段：Python 标准库导入 / Stage 1: Python Standard Library Imports
 # ==========================================
 
+import functools
 from abc import ABC, abstractmethod
 from typing import Optional, Tuple, Dict, Callable, Union, Any, Protocol, List
 import warnings
@@ -630,18 +631,29 @@ class MuJoCoBenchmarks(ABC):
 
     def _compile_evaluation(self) -> Callable[[JAXArray, JAXArray], JAXArray]:
         """编译评估函数 / Compile evaluation function"""
-        @jax.jit
+        env_wrapper = self.env_wrapper
+        policy = self.policy
+        num_episodes = self.num_episodes
+        max_episode_length = self.max_episode_length
+
+        @functools.partial(jax.jit, static_argnums=(2, 3, 4, 5))
         def compiled_fn(
             params_batch: JAXArray,
-            keys_batch: JAXArray
+            keys_batch: JAXArray,
+            env_wrapper,
+            policy,
+            num_episodes,
+            max_episode_length
         ) -> JAXArray:
             return evaluate_population(
                 params_batch, keys_batch,
-                self.env_wrapper, self.policy,
-                self.num_episodes, self.max_episode_length
+                env_wrapper, policy,
+                num_episodes, max_episode_length
             )
 
-        return compiled_fn
+        return lambda p, k: compiled_fn(
+            p, k, env_wrapper, policy, num_episodes, max_episode_length
+        )
 
     def _generate_keys(self, batch_size: int) -> JAXArray:
         """生成批量评估所需的 PRNGKeys / Generate PRNGKeys for batch evaluation"""
