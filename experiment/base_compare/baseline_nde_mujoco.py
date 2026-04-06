@@ -5,7 +5,12 @@ import time
 from baseline.lcc_cmaes.lcc_cmaes import LCC_CMAES
 # from baseline.wcc_mmes.wcc_mmes import WCC_MMES
 from utils_ import fun_record, log_to_tensorboard, result_record, run_parallel_task, plot_evaluation_curve_best_so_far, running_data_record
-
+import jax
+# 启用 JAX 编译缓存
+jax.config.update("jax_compilation_cache_dir", "/tmp/jax_cache")
+jax.config.update("jax_persistent_cache_min_entry_size_bytes", -1)
+jax.config.update("jax_persistent_cache_min_compile_time_secs", 0)
+jax.config.update("jax_log_compiles", True)
 '''
 此为 NDAs 优化实验示例，使用 MMES 优化器在 CEC2013 LSGO 上进行测试
 '''
