@@ -761,12 +761,24 @@ class CMAESCCEnv(gym.Env):
                 # Brax fitness on a single sample may return shape (1,), so we scalarize here.
                 old_values = [float(np.asarray(self.fun(x)).reshape(-1)[0]) for x in combined]
                 old_values = np.asarray(old_values, dtype=np.float64)
-                
-                new_values = np.asarray(self.fun(combined), dtype=np.float64).reshape(-1)
 
-                print("old_values shape:", old_values.shape)
-                print("new_values shape:", new_values.shape)
-                print("max abs diff:", np.max(np.abs(old_values - new_values)))
+                if not hasattr(self, "_batch_eval_verified"):
+                    self._batch_eval_verified = False
+
+                if not self._batch_eval_verified:
+                    test_combined = combined[:2]
+                    test_old_values = [float(np.asarray(self.fun(x)).reshape(-1)[0]) for x in test_combined]
+                    test_old_values = np.asarray(test_old_values, dtype=np.float64)
+
+                    test_new_values = np.asarray(self.fun(test_combined), dtype=np.float64).reshape(-1)
+
+                    print("test_old_values shape:", test_old_values.shape, flush=True)
+                    print("test_new_values shape:", test_new_values.shape, flush=True)
+                    print("test_old_values:", test_old_values, flush=True)
+                    print("test_new_values:", test_new_values, flush=True)
+                    print("test max abs diff:", np.max(np.abs(test_old_values - test_new_values)), flush=True)
+
+                    self._batch_eval_verified = True
 
                 return old_values
 
