@@ -40,9 +40,7 @@ Date: 2026-03-15
 # Imports / 导入
 # =============================================================================
 # Standard library / 标准库
-import os
-import sys
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../../')))
+
 import logging
 import warnings
 from typing import Dict, List, Optional, Tuple, Union
@@ -761,8 +759,16 @@ class CMAESCCEnv(gym.Env):
                 combined = self._combine_solution(x_batch, self.best, dims)
                 # cma-es expects a 1D list/array of scalar fitness values.
                 # Brax fitness on a single sample may return shape (1,), so we scalarize here.
-                values = [float(np.asarray(self.fun(x)).reshape(-1)[0]) for x in combined]
-                return np.asarray(values, dtype=np.float64)
+                old_values = [float(np.asarray(self.fun(x)).reshape(-1)[0]) for x in combined]
+                old_values = np.asarray(old_values, dtype=np.float64)
+                
+                new_values = np.asarray(self.fun(combined), dtype=np.float64).reshape(-1)
+
+                print("old_values shape:", old_values.shape)
+                print("new_values shape:", new_values.shape)
+                print("max abs diff:", np.max(np.abs(old_values - new_values)))
+
+                return old_values
 
             # Run CMA-ES optimization / 运行 CMA-ES 优化
             while not sub_es.stop():
