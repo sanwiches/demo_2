@@ -61,7 +61,7 @@ def nda_optimization_task(fun_id, MaxFEs, parallel_index):
 
     time_end = time.time()
 
-    return  fun_.fitness_record, (time_end - time_start)
+    return results_["fitness_record"], (time_end - time_start)
 
 
 if __name__ == '__main__':
