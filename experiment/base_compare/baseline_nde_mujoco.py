@@ -79,7 +79,7 @@ if __name__ == '__main__':
         output_data['baseline_time'].append(average_time)
 
         # log_to_tensorboard(fitness_record, logs_dir) # 这里默认采样间隔为 1E3
-        result_record(output_data, output_path, record_FEs_list=[1E3, 2E3, 3E3, 4E3, 5E3])
+        result_record(output_data, output_path, record_FEs_list=[1E3, 2E3, 3E3, 4E3])
 
         # 可以直接用 utils 里的绘图函数画图
         # plot_evaluation_curve_best_so_far(output_data, output_path.replace('data', 'plot'), maxfes=MaxFEs)
