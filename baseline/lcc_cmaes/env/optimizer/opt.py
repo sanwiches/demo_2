@@ -759,28 +759,8 @@ class CMAESCCEnv(gym.Env):
                 combined = self._combine_solution(x_batch, self.best, dims)
                 # cma-es expects a 1D list/array of scalar fitness values.
                 # Brax fitness on a single sample may return shape (1,), so we scalarize here.
-                old_values = [float(np.asarray(self.fun(x)).reshape(-1)[0]) for x in combined]
-                old_values = np.asarray(old_values, dtype=np.float64)
-
-                if not hasattr(self, "_batch_eval_verified"):
-                    self._batch_eval_verified = False
-
-                if not self._batch_eval_verified:
-                    test_combined = combined[:2]
-                    test_old_values = [float(np.asarray(self.fun(x)).reshape(-1)[0]) for x in test_combined]
-                    test_old_values = np.asarray(test_old_values, dtype=np.float64)
-
-                    test_new_values = np.asarray(self.fun(test_combined), dtype=np.float64).reshape(-1)
-
-                    print("test_old_values shape:", test_old_values.shape, flush=True)
-                    print("test_new_values shape:", test_new_values.shape, flush=True)
-                    print("test_old_values:", test_old_values, flush=True)
-                    print("test_new_values:", test_new_values, flush=True)
-                    print("test max abs diff:", np.max(np.abs(test_old_values - test_new_values)), flush=True)
-
-                    self._batch_eval_verified = True
-
-                return old_values
+                values = [float(np.asarray(self.fun(x)).reshape(-1)[0]) for x in combined]
+                return np.asarray(values, dtype=np.float64)
 
             # Run CMA-ES optimization / 运行 CMA-ES 优化
             while not sub_es.stop():
