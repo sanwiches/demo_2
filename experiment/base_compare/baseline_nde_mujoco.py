@@ -57,7 +57,7 @@ def nda_optimization_task(fun_id, MaxFEs, parallel_index):
         'seed_rng': 42+ parallel_index,
         'fitness_threshold': -np.inf,  # 明确设置避免意外终止 / Explicitly set to avoid accidental termination
         'early_stopping_evaluations': np.inf,# 禁用早停 / Disable early stopping
-        'device': 'cpu',}
+        }
     optimizer =LCC_CMAES(problem_, options_)
     results_ = optimizer.optimize()
 
