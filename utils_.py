@@ -11,7 +11,13 @@ from concurrent.futures import ProcessPoolExecutor
 import multiprocessing
 import matplotlib.pyplot as plt
 from matplotlib.ticker import LogLocator, NullFormatter, ScalarFormatter
+import psutil
 
+def monitor_resources():
+    memory_info = psutil.virtual_memory()
+    cpu_percent = psutil.cpu_percent(interval=1)
+    print(f"Memory used: {memory_info.percent}%")
+    print(f"CPU used: {cpu_percent}%")
 '''
 ============================辅助类函数====================================
 '''
@@ -313,6 +319,7 @@ def run_parallel_task(target_func, parallel_num, *args, **kwargs):
         results_record = []
         
         for future in futures:
+            monitor_resources()  # 添加资源监控
             # 获取结果
             # 假设 target_func 返回的是 (耗时, 结果数据) 的元组
             res = future.result()
