@@ -715,12 +715,42 @@ class MuJoCoBenchmarks(ABC):
 
         # JAX 侧：核心计算 / JAX side: Core computation
         x_jax = jnp.array(x)
-        keys_jax = self._generate_keys(N)
+
+        # 1. 如果开启了 replay，就说明这次是 batch 对照评估
+        #    不重新生成 key，而是使用前面逐点评估记录下来的 key
+        if getattr(self, "_debug_replay_keys", False):
+            key_buffer = getattr(self, "_debug_key_buffer", None)
+
+            if key_buffer is None:
+                raise RuntimeError("debug key buffer is None")
+
+            if len(key_buffer) != N:
+                raise RuntimeError(
+                    f"key buffer length mismatch: need {N}, got {len(key_buffer)}"
+                )
+
+            keys_jax = jnp.asarray(np.concatenate(key_buffer, axis=0))
+
+            # replay 只用一次，用完立刻关闭
+            self._debug_replay_keys = False
+
+        else:
+            # 2. 原始逻辑：正常生成本次评估的 keys
+            keys_jax = self._generate_keys(N)
+
+        # 3. 如果开启了 record，就把这次单点评估用过的 key 记录下来
+        if getattr(self, "_debug_record_keys", False):
+            if N != 1:
+                raise RuntimeError(f"debug record expects N=1, but got N={N}")
+
+            if not hasattr(self, "_debug_key_buffer"):
+                self._debug_key_buffer = []
+
+            self._debug_key_buffer.append(np.asarray(keys_jax).copy())
+
         fitness_jax = self._compiled_evaluate(x_jax, keys_jax)
 
-        # Python 侧：输出转换 / Python side: Output conversion
         fitness = np.array(fitness_jax, dtype=np.float64)
-
         return fitness
 
     def info(self) -> Dict[str, Union[float, int, Dict, str]]:

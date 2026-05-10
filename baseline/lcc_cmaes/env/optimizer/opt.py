@@ -757,16 +757,76 @@ class CMAESCCEnv(gym.Env):
             # Define subspace objective function / 定义子空间目标函数
             def subspace_objective(x_batch: npt.NDArray[np.float64]) -> npt.NDArray[np.float64]:
                 combined = self._combine_solution(x_batch, self.best, dims)
-                # cma-es expects a 1D list/array of scalar fitness values.
-                # Brax fitness on a single sample may return shape (1,), so we scalarize here.
-                old_values = [float(np.asarray(self.fun(x)).reshape(-1)[0]) for x in combined]
-                old_values = np.asarray(old_values, dtype=np.float64)
-                
-                new_values = np.asarray(self.fun(combined), dtype=np.float64).reshape(-1)
 
-                print("old_values shape:", old_values.shape)
-                print("new_values shape:", new_values.shape)
-                print("max abs diff:", np.max(np.abs(old_values - new_values)))
+                # 找到底层 MuJoCo problem
+                problem = self._original_fun
+                while hasattr(problem, "fun"):
+                    problem = problem.fun
+
+                # 保存原来的 debug 状态，避免影响后续实验
+                old_record_flag = getattr(problem, "_debug_record_keys", False)
+                old_replay_flag = getattr(problem, "_debug_replay_keys", False)
+                old_key_buffer = getattr(problem, "_debug_key_buffer", None)
+
+                try:
+                    # =====================================================
+                    # 1. old 路径：逐点评估，并记录每个点用过的 key
+                    # =====================================================
+                    problem._debug_key_buffer = []
+                    problem._debug_record_keys = True
+                    problem._debug_replay_keys = False
+
+                    old_values = [
+                        float(np.asarray(self.fun(x)).reshape(-1)[0])
+                        for x in combined
+                    ]
+                    old_values = np.asarray(old_values, dtype=np.float64)
+
+                    if len(problem._debug_key_buffer) != combined.shape[0]:
+                        raise RuntimeError(
+                            f"recorded keys mismatch: "
+                            f"got {len(problem._debug_key_buffer)}, "
+                            f"expected {combined.shape[0]}"
+                        )
+
+                    # =====================================================
+                    # 2. new 路径只是 debug，对照完要删掉记录
+                    # =====================================================
+                    record_len = len(self._fitness_record)
+
+                    fun_record_len = None
+                    if hasattr(self._original_fun, "fitness_record"):
+                        fun_record_len = len(self._original_fun.fitness_record)
+
+                    # =====================================================
+                    # 3. new 路径：batch 评估，但复用 old 路径记录的 keys
+                    # =====================================================
+                    problem._debug_record_keys = False
+                    problem._debug_replay_keys = True
+
+                    new_values = np.asarray(self.fun(combined), dtype=np.float64).reshape(-1)
+
+                    diff = np.abs(old_values - new_values)
+
+                    print("old_values shape:", old_values.shape)
+                    print("new_values shape:", new_values.shape)
+                    print("key_buffer length:", len(problem._debug_key_buffer))
+                    print("max abs diff:", float(np.max(diff)))
+                    print("old_values[:5]:", old_values[:5])
+                    print("new_values[:5]:", new_values[:5])
+                    print("diff[:5]:", diff[:5])
+
+                    # 删除 new_values 这次 debug 额外写进去的 fitness 记录
+                    del self._fitness_record[record_len:]
+
+                    if fun_record_len is not None:
+                        del self._original_fun.fitness_record[fun_record_len:]
+
+                finally:
+                    # 恢复 debug 状态
+                    problem._debug_record_keys = old_record_flag
+                    problem._debug_replay_keys = old_replay_flag
+                    problem._debug_key_buffer = old_key_buffer
 
                 return old_values
 
