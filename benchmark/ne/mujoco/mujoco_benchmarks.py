@@ -729,14 +729,26 @@ class MuJoCoBenchmarks(ABC):
                     f"key buffer length mismatch: need {N}, got {len(key_buffer)}"
                 )
 
-            keys_jax = jnp.asarray(np.concatenate(key_buffer, axis=0))
+            replay_keys_np = np.concatenate(key_buffer, axis=0)
+            keys_jax = jnp.asarray(replay_keys_np)
 
-            # replay 只用一次，用完立刻关闭
+            print("[replay] N:", N)
+            print("[replay] replay_x_jax", x_jax)
+            print("[replay] replay_keys_np shape:", replay_keys_np.shape)
+            print("[replay] replay_keys_np dtype:", replay_keys_np.dtype)
+            print("[replay] first key:", replay_keys_np[0, 0])
+
             self._debug_replay_keys = False
-
         else:
             # 2. 原始逻辑：正常生成本次评估的 keys
             keys_jax = self._generate_keys(N)
+            if getattr(self, "_debug_record_keys", False):
+                print("[record] N:", N)
+                print("[record] record_x_jax", x_jax)
+                print("[record] keys shape:", np.asarray(keys_jax).shape)
+                print("[record] keys dtype:", np.asarray(keys_jax).dtype)
+                print("[record] first key:", np.asarray(keys_jax)[0, 0])
+                
 
         # 3. 如果开启了 record，就把这次单点评估用过的 key 记录下来
         if getattr(self, "_debug_record_keys", False):
